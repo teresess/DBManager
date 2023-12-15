@@ -1,26 +1,25 @@
 package upd.dev.dbmanager;
 
+import upd.dev.dbmanager.parametrs.Option;
+import upd.dev.dbmanager.parametrs.Where;
+
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
-public class DBManagerImpl {
+public class DBManagerBuilder {
 
-    public Connection connection = null;
-    private DBManagerImpl.Option option;
-    private DBManagerImpl.Path path;
-    private DBManagerImpl.Table table;
-    private DBManagerImpl.Where where;
-    private DBManagerImpl.Type type;
-    public DBManagerImpl() {
-        setOption(null);
-        setWhere(null);
-        setType(null);
-        setPath(null);
-        setTable(null);
+    public Connection connection;
+    private DBManagerBuilder.Option option;
+    private DBManagerBuilder.Path path;
+    private DBManagerBuilder.Table table;
+    private DBManagerBuilder.Where where;
+    private DBManagerBuilder.Type type;
+    public DBManagerBuilder() {
+        setAllNull();
     }
-    private Map<String, String> getOption() {
+    private List<upd.dev.dbmanager.parametrs.Option> getOption() {
         return option.getOption();
     }
 
@@ -32,33 +31,40 @@ public class DBManagerImpl {
         return table.getTable();
     }
 
-    private Map<String, String> getWhere() {
+    private List<upd.dev.dbmanager.parametrs.Where> getWhere() {
         return where.getWhere();
     }
     private Types getType() {
         return type.getTypes();
     }
-    public DBManagerImpl setType(Types type) {
+    public DBManagerBuilder setType(Types type) {
         this.type = new Type(type);
 
         return this;
     }
-    public DBManagerImpl setTable(String table) {
+    private void setAllNull() {
+        setWhere(upd.dev.dbmanager.parametrs.Where.add(null, null));
+        setOption(upd.dev.dbmanager.parametrs.Option.add(null));
+        setType(null);
+        setPath(null);
+        setTable(null);
+    }
+    public DBManagerBuilder setTable(String table) {
         this.table = new Table(table);
 
         return this;
     }
-    public DBManagerImpl setWhere(Map<String, String> where) {
+    public DBManagerBuilder setWhere(upd.dev.dbmanager.parametrs.Where... where) {
         this.where = new Where(where);
 
         return this;
     }
-    public DBManagerImpl setOption(Map<String, String> option) {
+    public DBManagerBuilder setOption(upd.dev.dbmanager.parametrs.Option... option) {
         this.option = new Option(option);
 
         return this;
     }
-    public DBManagerImpl setPath(String path) {
+    public DBManagerBuilder setPath(String path) {
         this.path = new Path(path);
 
         return this;
@@ -83,22 +89,25 @@ public class DBManagerImpl {
         }
     }
     public static class Option {
-        private Map<String, String> option;
-        public Option(Map<String, String> option) {
-            this.option = option;
+        private List<upd.dev.dbmanager.parametrs.Option> option;
+        public Option(upd.dev.dbmanager.parametrs.Option... option) {
+            List<upd.dev.dbmanager.parametrs.Option> options = new ArrayList<>(Arrays.asList(option));
+            this.option = options;
         }
-        public Map<String, String> getOption() {
+        public List<upd.dev.dbmanager.parametrs.Option> getOption() {
             return option;
         }
     }
     public static class Where {
-        private Map<String, String> where;
-        public Map<String, String> getWhere() {
+        private List<upd.dev.dbmanager.parametrs.Where> where;
+        public List<upd.dev.dbmanager.parametrs.Where> getWhere() {
             return where;
         }
 
-        public Where(Map<String, String> where) {
-            this.where = where;
+        public Where(upd.dev.dbmanager.parametrs.Where... where) {
+
+            List<upd.dev.dbmanager.parametrs.Where> wheres = new ArrayList<>(Arrays.asList(where));
+            this.where = wheres;
         }
     }
     public static class Type {
@@ -118,9 +127,9 @@ public class DBManagerImpl {
             String where = "";
             List<String> keys = new ArrayList<>(), values = new ArrayList<>();
 
-            getWhere().forEach((key, value) -> {
-                keys.add(key);
-                values.add("'%s'".formatted(value));
+            getWhere().forEach((whereOption) -> {
+                keys.add(whereOption.getKey());
+                values.add("'%s'".formatted(whereOption.getValue()));
             });
 
             for (int i = 0;i < keys.size();i++) {
@@ -132,18 +141,18 @@ public class DBManagerImpl {
             }
 
             String que = "SELECT COUNT(*) FROM %s WHERE %s".formatted(getTable(), where);
-            PreparedStatement preparedStatement = exeQueImpl(que);
+            PreparedStatement preparedStatement = createStatement(que);
             try {
                 ResultSet resultSet = preparedStatement.executeQuery();
                 if (resultSet.next()) {
                     int count = resultSet.getInt(1);
                     ret = (count > 0);
                 }
+                connection.close();
             } catch (SQLException e) {
                 e.printStackTrace();
             }
         }
-
         return ret;
     }
     public List<List<String>> exeQue() {
@@ -154,9 +163,9 @@ public class DBManagerImpl {
 
             List<String> keys = new ArrayList<>(), values = new ArrayList<>();
 
-            getOption().forEach((key, value) -> {
-                keys.add(key);
-                values.add("'%s'".formatted(value));
+            getOption().forEach((options) -> {
+                keys.add(options.getKey());
+                values.add("'%s'".formatted(options.getValue()));
             });
             String s_keys = "", s_values = "";
 
@@ -175,9 +184,9 @@ public class DBManagerImpl {
             String where = "";
             List<String> keys = new ArrayList<>(), values = new ArrayList<>();
 
-            getWhere().forEach((key, value) -> {
-                keys.add(key);
-                values.add("'%s'".formatted(value));
+            getWhere().forEach((whereOption) -> {
+                keys.add(whereOption.getKey());
+                values.add("'%s'".formatted(whereOption.getValue()));
             });
 
             for (int i = 0;i < keys.size();i++) {
@@ -195,14 +204,14 @@ public class DBManagerImpl {
             List<String> update_col = new ArrayList<>(), new_update_col = new ArrayList<>(),
                     where_key = new ArrayList<>(), where_value = new ArrayList<>();
 
-            getOption().forEach((key, value) -> {
-                update_col.add(key);
-                new_update_col.add("'%s'".formatted(value));
+            getOption().forEach((options) -> {
+                update_col.add(options.getKey());
+                new_update_col.add("'%s'".formatted(options.getValue()));
             });
 
-            getWhere().forEach((key, value) -> {
-                where_key.add(key);
-                where_value.add("'%s'".formatted(value));
+            getWhere().forEach((whereOption) -> {
+                where_key.add(whereOption.getKey());
+                where_value.add("'%s'".formatted(whereOption.getValue()));
             });
 
             for (int i = 0;i < where_key.size();i++) {
@@ -225,13 +234,11 @@ public class DBManagerImpl {
             String where = "", select = "";
             List<String> keys = new ArrayList<>(), values = new ArrayList<>(), selected = new ArrayList<>();
 
-            getWhere().forEach((key, value) -> {
-                keys.add(key);
-                values.add("'%s'".formatted(value));
+            getWhere().forEach((whereOption) -> {
+                keys.add(whereOption.getKey());
+                values.add("'%s'".formatted(whereOption.getValue()));
             });
-            getOption().forEach((f, opt) -> {
-                selected.add(opt);
-            });
+            getOption().forEach((options) -> selected.add(options.getValue()));
 
             for (int i=0;i< selected.size();i++) {
                 select+=selected.get(i);
@@ -252,16 +259,14 @@ public class DBManagerImpl {
         }
 
         try {
-            PreparedStatement preparedStatement = exeQueImpl(que);
+            PreparedStatement preparedStatement = createStatement(que);
             if (getType() != Types.SELECT) {
                 preparedStatement.execute();
             } else {
                 ResultSet resultSet = preparedStatement.executeQuery();
                 List<String> sel = new ArrayList<>();
 
-                getOption().forEach((l, sell) -> {
-                    sel.add(sell);
-                });
+                getOption().forEach((options) -> sel.add(options.getValue()));
 
                 while (resultSet.next()) {
                     List<String> list = new ArrayList<>();
@@ -280,7 +285,7 @@ public class DBManagerImpl {
         return returned;
     }
 
-    public PreparedStatement exeQueImpl(String que) {
+    public PreparedStatement createStatement(String que) {
         PreparedStatement preparedStatement = null;
         try {
             Class.forName("org.sqlite.JDBC");
