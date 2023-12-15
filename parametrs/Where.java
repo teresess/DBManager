@@ -16,7 +16,7 @@ public class Where {
         this.where = where;
         this.newValue = newValue;
     }
-    public static Where add(String where, String newValue) {
-        return new Where(where, newValue);
+    public static Where add(String where, String whereValue) {
+        return new Where(where, whereValue);
     }
 }

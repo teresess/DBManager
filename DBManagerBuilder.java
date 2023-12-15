@@ -1,5 +1,6 @@
 package upd.dev.dbmanager;
 
+import com.fasterxml.jackson.databind.introspect.TypeResolutionContext;
 import upd.dev.dbmanager.parametrs.Option;
 import upd.dev.dbmanager.parametrs.Where;
 
@@ -44,7 +45,7 @@ public class DBManagerBuilder {
     }
     private void setAllNull() {
         setWhere(upd.dev.dbmanager.parametrs.Where.add(null, null));
-        setOption(upd.dev.dbmanager.parametrs.Option.add(null));
+        setOption(upd.dev.dbmanager.parametrs.Option.add(null, null));
         setType(null);
         setPath(null);
         setTable(null);
@@ -286,22 +287,17 @@ public class DBManagerBuilder {
     }
 
     public PreparedStatement createStatement(String que) {
+        PreparedStatement preparedStatement = null;
         try {
             Class.forName("org.sqlite.JDBC");
             connection = DriverManager.getConnection("jdbc:sqlite:%s".formatted(getPath()));
 
-            DatabaseMetaData metaData = connection.getMetaData();
-            ResultSet resultSet = metaData.getCatalogs();
-
-            while (resultSet.next()) {
-                if (resultSet.getString(1).equalsIgnoreCase(getPath())) {
-                    System.out.printf("Execute que: %s\n".formatted(que));
-                    return connection.prepareStatement(que);
-                }
-            }
+            preparedStatement = connection.prepareStatement(que);
+            System.out.printf("Execute que: %s\n".formatted(que));
+            
         } catch (ClassNotFoundException | SQLException e) {
             e.printStackTrace();
         }
-        return null;
+        return preparedStatement;
     }
 }
