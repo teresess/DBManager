@@ -286,17 +286,22 @@ public class DBManagerBuilder {
     }
 
     public PreparedStatement createStatement(String que) {
-        PreparedStatement preparedStatement = null;
         try {
             Class.forName("org.sqlite.JDBC");
             connection = DriverManager.getConnection("jdbc:sqlite:%s".formatted(getPath()));
 
-            preparedStatement = connection.prepareStatement(que);
+            DatabaseMetaData metaData = connection.getMetaData();
+            ResultSet resultSet = metaData.getCatalogs();
 
-            System.out.printf("Execute que: %s\n".formatted(que));
+            while (resultSet.next()) {
+                if (resultSet.getString(1).equalsIgnoreCase(getPath())) {
+                    System.out.printf("Execute que: %s\n".formatted(que));
+                    return connection.prepareStatement(que);
+                }
+            }
         } catch (ClassNotFoundException | SQLException e) {
             e.printStackTrace();
         }
-        return preparedStatement;
+        return null;
     }
 }
